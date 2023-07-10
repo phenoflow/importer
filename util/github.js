@@ -176,14 +176,20 @@ class Github {
   static async getRepos(org='phenoflow') {
     let octokit = await Github.getConnection();
     if(!octokit) return false;
-    let repos;
+    let allRepos = { data: [] }, page = 1, repos = [];
     try {
-      repos = await octokit.repos.listForOrg({org:org, per_page:10000});
+      do {
+        repos = await octokit.repos.listForOrg({org:org, per_page:100, page:page++});
+        allRepos.data = allRepos.data.concat(repos.data);
+        allRepos.headers = repos.headers;
+        allRepos.status = repos.status;
+        allRepos.url = repos.url;
+      } while(repos.data.length)
     } catch(error) {
       logger.error("Error enumerating repos for organisation " + org + ": " + error);
       return false;
     }
-    return repos;
+    return allRepos;
   }
 
   static async clearAllRepos(org='phenoflow') {
@@ -193,7 +199,7 @@ class Github {
     if(!repos) return false;
     try {
       for(let repo of repos.data) {
-        await octokit.repos.delete({owner:org, repo:repo.name});
+        if(repo?.name.includes('---')) await octokit.repos.delete({owner:org, repo:repo.name});
       }
     } catch(error) {
       logger.error("Error deleting test repos: " + error);

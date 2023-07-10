@@ -118,8 +118,8 @@ class Workflow {
   static async getFullWorkflow(workflowId, username, language=null, implementationUnits={}) {
     try {
       var workflow = JSON.parse(JSON.stringify(await models.workflow.findOne({where:{id:workflowId}})));
-      if(workflow.userName!=username) throw "User does not own this workflow";
       if(!workflow) throw "Error finding workflow";
+      if(workflow.userName!=username) throw "User does not own this workflow";
       let steps = await models.step.findAll({where:{workflowId:workflow.id}});
       if(!steps) throw "Error finding steps";
       let mergedSteps = [];
