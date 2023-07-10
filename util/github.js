@@ -227,6 +227,10 @@ class Github {
     }
   }
 
+  static createRepoName(name, id) {
+    return name.replaceAll("'", "") + '---' + id; 
+  }
+
   static async commit(generatedWorkflow, id, name, about, author, connector, submodules=[], restricted=false) {
 
     let workflowRepo = "output/" + id;
@@ -378,7 +382,7 @@ class Github {
 
     let repos = await Github.getRepos();
     let parentId = await Workflow.getParent(id);
-    const repo = name + '---' + (parentId?parentId:id);
+    const repo = Github.createRepoName(name, (parentId?parentId:id));
     let octokit = await Github.getConnection();
     if(!octokit || !repos) return false;
     if (!repos.data.map((repo) => repo.name).includes(repo)) {
@@ -411,7 +415,7 @@ class Github {
         for(let nestedWorkflowInStep of workflowA.generate.body.steps.filter(step=>!step.fileName)) {
           // if nested workflow represented by other passed workflow
           if(nestedWorkflowInStep.content.replaceAll('\n', '').replace(/outputs:\s*\w*:\s*id:\s*\w*/,'')==workflowBContent.replaceAll('\n', '').replace(/outputs:\s*\w*:\s*id:\s*\w*/,'')) {
-            let nestedWorkflowId = workflowB.workflow.name + '---' + workflowB.workflow.id;
+            let nestedWorkflowId = createRepoName(workflowB.workflow.name, workflowB.workflow.id);
             // point parent workflow to subfolder containing nested workflow
             workflowA.generate.body.workflow = workflowA.generate.body.workflow.replace(nestedWorkflowInStep.name + '.cwl', nestedWorkflowId + '/' + workflowB.workflow.name + '.cwl');
             // point parent workflow inputs to nested workflow implementation units
@@ -432,7 +436,7 @@ class Github {
       // assume subflows don't have connectors of their own
       let sha = await Github.commit(subflow, subflow.workflow.id, subflow.workflow.name, subflow.workflow.about, subflow.workflow.userName, 'main');
       if(!sha) return false;
-      let nestedWorkflowId = subflow.workflow.name + '---' + subflow.workflow.id;
+      let nestedWorkflowId = Github.createRepoName(subflow.workflow.name, subflow.workflow.id);
       subModules[subflow.workflow.id] = {'name': nestedWorkflowId, 'url': config.get("github.REPOSITORY_PREFIX") + '/' + nestedWorkflowId + '.git', 'sha': sha};
     }
 
