@@ -142,30 +142,34 @@ class Github {
     let octokit;
     const accessToken = config.get("github.ACCESS_TOKEN");
     try {
-      octokit = new ThrottledOcto({baseUrl:config.get("github.BASE_URL"), auth:accessToken, log:{debug:()=>{}, info:()=>{}, warn: console.warn, error: console.error},
-        throttle: {
-          onRateLimit: (retryAfter, options, octokit) => {
-            octokit.log.warn(
-              `Request quota exhausted for request ${options.method} ${options.url}`,
-            );
-      
-            if(options.request.retryCount <= 2) {
-              logger.info(`Retrying after ${retryAfter} seconds!`);
-              return true;
-            }
-          },
-          onSecondaryRateLimit: (retryAfter, options, octokit) => {
-            octokit.log.warn(
-              `Secondary quota detected for request ${options.method} ${options.url}`,
-            );
+      if(config.get("github.BASE_URL").includes("github.com")) {
+        octokit = new ThrottledOcto({baseUrl:config.get("github.BASE_URL"), auth:accessToken, log:{debug:()=>{}, info:()=>{}, warn: console.warn, error: console.error},
+          throttle: {
+            onRateLimit: (retryAfter, options, octokit) => {
+              octokit.log.warn(
+                `Request quota exhausted for request ${options.method} ${options.url}`,
+              );
+        
+              if(options.request.retryCount <= 2) {
+                logger.info(`Retrying after ${retryAfter} seconds!`);
+                return true;
+              }
+            },
+            onSecondaryRateLimit: (retryAfter, options, octokit) => {
+              octokit.log.warn(
+                `Secondary quota detected for request ${options.method} ${options.url}`,
+              );
 
-            if(options.request.retryCount <= 2) {
-              logger.info(`Retrying after ${retryAfter} seconds!`);
-              return true;
+              if(options.request.retryCount <= 2) {
+                logger.info(`Retrying after ${retryAfter} seconds!`);
+                return true;
+              }
             }
           }
-        }
-      });
+        });
+      } else {
+        octokit = new Octokit({baseUrl:config.get("github.BASE_URL"), auth:accessToken, log:{debug:()=>{}, info:()=>{}, warn: console.warn, error: console.error}});
+      }
     } catch(error) {
       logger.error("Error connecting to Github: " + error);
       return false;
@@ -203,6 +207,21 @@ class Github {
       }
     } catch(error) {
       logger.error("Error deleting test repos: " + error);
+      return false;
+    }
+    return true;
+  }
+
+  static async deleteRepo(id, org='phenoflow') {
+    let octokit = await Github.getConnection();
+    if(!octokit) return false;
+    let repos = await Github.getRepos(org);
+    if(!repos) return false;
+    try {
+      let repo = repos.data.filter(repo=>repo.name.includes(id))?.[0];
+      if(repo && repo.name.includes('---')) await octokit.repos.delete({owner:org, repo:repo.name});
+    } catch(error) {
+      logger.error("Error deleting test repo: " + error);
       return false;
     }
     return true;
@@ -415,7 +434,7 @@ class Github {
         for(let nestedWorkflowInStep of workflowA.generate.body.steps.filter(step=>!step.fileName)) {
           // if nested workflow represented by other passed workflow
           if(nestedWorkflowInStep.content.replaceAll('\n', '').replace(/outputs:\s*\w*:\s*id:\s*\w*/,'')==workflowBContent.replaceAll('\n', '').replace(/outputs:\s*\w*:\s*id:\s*\w*/,'')) {
-            let nestedWorkflowId = createRepoName(workflowB.workflow.name, workflowB.workflow.id);
+            let nestedWorkflowId = Github.createRepoName(workflowB.workflow.name, workflowB.workflow.id);
             // point parent workflow to subfolder containing nested workflow
             workflowA.generate.body.workflow = workflowA.generate.body.workflow.replace(nestedWorkflowInStep.name + '.cwl', nestedWorkflowId + '/' + workflowB.workflow.name + '.cwl');
             // point parent workflow inputs to nested workflow implementation units

@@ -51,32 +51,39 @@ class Workflow {
             if(implementation.fileName.includes(".")) await fs.unlink("uploads/"+workflowId+"/"+implementation.language+"/"+implementation.fileName);
           } 
         } catch(exception) {
-          console.error("Error deleting implementation:"+error);
+          logger.error("Error deleting implementation:"+exception);
+          return false;
         }
         try {
           await models.implementation.destroy({where:{stepId:step.id}});
         } catch(exception) {
-          console.error("Error deleting implementation:"+error);
+          logger.error("Error deleting implementation:"+exception);
+          return false;
         }
         try {
           await models.input.destroy({where:{stepId:step.id}});
         } catch(exception) {
-          console.error("Error deleting input:"+error);
+          logger.error("Error deleting input:"+exception);
+          return false;
         }
         try {
           await models.output.destroy({where:{stepId:step.id}});
         } catch(exception) {
-          console.error("Error deleting output:"+error);
+          logger.error("Error deleting output:"+exception);
+          return false;
         }
       }
       try {
         await models.step.destroy({where:{workflowId:workflowId}});
       } catch(exception) {
-        console.error("Error deleting steps:"+error);
+        logger.error("Error deleting steps:"+exception);
+        return false;
       }
     } catch(exception) {
-      console.error("Error getting steps to delete:"+error);
+      logger.error("Error getting steps to delete:"+exception);
+      return false;
     }
+    return true;
   }
 
   static async workflowComplete(workflowId) {

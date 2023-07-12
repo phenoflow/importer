@@ -238,6 +238,19 @@ describe("importer", () => {
 			try { workflows = await models.workflow.findAll(); } catch(error) { logger.error(error); };
 			expect(workflows).to.have.lengthOf(4);
     }).timeout(0);
+
+    it("[IM8] Should be able to delete an imported codelist.", async() => {
+      await Importer.addDefaultUser();
+      let res = await importCodelist();
+      res.should.have.status(200);
+      let workflows;
+			try { workflows = await models.workflow.findAll(); } catch(error) { logger.error(error); };
+			expect(workflows).to.have.lengthOf(4);
+      res = await chai.request(testServerObject).post("/phenoflow/importer/remove").send({id:workflows[1].id});
+      res.should.have.status(200);
+      try { workflows = await models.workflow.findAll(); } catch(error) { logger.error(error); };
+			expect(workflows).to.have.lengthOf(0);
+    }).timeout(0);
   
   });
 
