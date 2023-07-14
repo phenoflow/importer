@@ -565,14 +565,14 @@ class Importer {
     if(!await Workflow.deleteStepsFromWorkflow(workflowId)) return false;
     try {
       await models.workflow.destroy({where:{id:workflowId}});
-    } catch(exception) {
-      logger.error("Error deleting workflow: "+exception);
+    } catch(error) {
+      logger.error("Error deleting workflow: "+error);
       return false;
     }
     try {
       await fs.rm("output/"+workflowId, {recursive:true});
-    } catch(exception) {
-      logger.error("Error removing local repo for " + workflowId + ": " + exception);
+    } catch(error) {
+      logger.error("Error removing local repo for " + workflowId + ": " + error);
       return false;
     }
     if(!await Github.deleteRepo(workflowId)) return false;
@@ -619,8 +619,8 @@ class Importer {
         if((await Github.getBranches(repo.name)).data.length < config.get("github.EXPECTED_BRANCH_COUNT")) {
           if(repo.name.includes("---") && !await Importer.removeWorkflows(repo.name.slice(repo.name.lastIndexOf("---") + 3, repo.name.length))) return false;
         }
-      } catch(exception) {
-        logger.error("Unable to get branches: " + exception);
+      } catch(error) {
+        logger.error("Unable to get branches: " + error);
         return false;
       }
     }

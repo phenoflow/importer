@@ -296,7 +296,7 @@ class Github {
     const getFileAsUTF8 = async(filePath) => {
       try {
         return await fsAsync.readFile(filePath, 'utf8');
-      } catch(exception) {
+      } catch(error) {
         logger.error("Error reading utf8 version of file: " + filePath);
         return false;
       }
@@ -306,8 +306,8 @@ class Github {
       let blobData;
       try {
         blobData = await octo.git.createBlob({owner:org, repo, content, encoding:'utf-8'})
-      } catch(exception) {
-        logger.error("Error creating blob: " + exception + ". " + org + " " + repo + " " + content);
+      } catch(error) {
+        logger.error("Error creating blob: " + error + ". " + org + " " + repo + " " + content);
         return false;
       }
       return blobData.data
@@ -318,8 +318,8 @@ class Github {
       if(!content) return false;
       try {
         return await createBlob(octo, org, repo, content);
-      } catch(exception) {
-        logger.error("Error creating blob for file: " + exception + " " + filePath);
+      } catch(error) {
+        logger.error("Error creating blob for file: " + error + " " + filePath);
         return false;
       }
     }
@@ -330,7 +330,7 @@ class Github {
       try {
         var { data } = await octo.git.createTree({owner, repo, tree, base_tree: parentTreeSha});
       } catch(error) {
-        logger.error("Error creating tree: " + exception + ". " + owner + " " + repo + " " + tree + " " + parentTreeSha);
+        logger.error("Error creating tree: " + error + ". " + owner + " " + repo + " " + tree + " " + parentTreeSha);
         return false;
       }
       return data;
@@ -367,8 +367,8 @@ class Github {
       let blobData;
       try {
         return await createBlob(octo, org, repo, content);
-      } catch(exception) {
-        logger.error("Error creating blob: " + exception + ". " + org + " " + repo + " " + JSON.stringify(submodules) + " " + content);
+      } catch(error) {
+        logger.error("Error creating blob: " + error + ". " + org + " " + repo + " " + JSON.stringify(submodules) + " " + content);
         return false;
       }
     }
