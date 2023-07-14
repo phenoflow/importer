@@ -410,6 +410,12 @@ router.post('/remove', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"), algorithms
   res.sendStatus(200);
 });
 
+router.post('/cleanup', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"), algorithms:['RS256']}), async function(req, res, next) {
+  req.setTimeout(0);
+  if(!await Importer.removePartialImports()) return res.sendStatus(500);
+  res.sendStatus(200);
+});
+
 //
 
 class Importer {
@@ -604,6 +610,20 @@ class Importer {
     }
 
     await Importer.removeWorkflow(workflowId);
+    return true;
+  }
+
+  static async removePartialImports() {
+    for(let repo of (await Github.getRepos())?.data || []) {
+      try {
+        if((await Github.getBranches(repo.name)).data.length < config.get("github.EXPECTED_BRANCH_COUNT")) {
+          if(repo.name.includes("---") && !await Importer.removeWorkflows(repo.name.slice(repo.name.lastIndexOf("---") + 3, repo.name.length))) return false;
+        }
+      } catch(exception) {
+        logger.error("Unable to get branches: " + exception);
+        return false;
+      }
+    }
     return true;
   }
 

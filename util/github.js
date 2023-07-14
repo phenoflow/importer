@@ -190,8 +190,7 @@ class Github {
         allRepos.url = repos.url;
       } while(repos.data.length)
     } catch(error) {
-      logger.error("Error enumerating repos for organisation " + org + ": " + error);
-      return false;
+      logger.error("Error enumerating repos for organisation (" + (repos?repos:"No repos") + ") " + org + ": " + error);
     }
     return allRepos;
   }
@@ -200,7 +199,7 @@ class Github {
     let octokit = await Github.getConnection();
     if(!octokit) return false;
     let repos = await Github.getRepos(org);
-    if(!repos) return false;
+    if(!repos.data.length) return false;
     try {
       for(let repo of repos.data) {
         if(repo?.name.includes('---')) await octokit.repos.delete({owner:org, repo:repo.name});
@@ -216,7 +215,7 @@ class Github {
     let octokit = await Github.getConnection();
     if(!octokit) return false;
     let repos = await Github.getRepos(org);
-    if(!repos) return false;
+    if(!repos.data.length) return false;
     try {
       let repo = repos.data.filter(repo=>repo.name.includes(id))?.[0];
       if(repo && repo.name.includes('---')) await octokit.repos.delete({owner:org, repo:repo.name});
@@ -225,6 +224,15 @@ class Github {
       return false;
     }
     return true;
+  }
+
+  static async getBranches(name, org='phenoflow') {
+    try {
+      return await (await Github.getConnection()).repos.listBranches({owner:org, repo:name});
+    } catch(error) {
+      logger.error("Unable to get branches: " + error);
+      return [];
+    }
   }
 
   static async addZenodoWebhook(owner, repo) {
@@ -403,7 +411,7 @@ class Github {
     let parentId = await Workflow.getParent(id);
     const repo = Github.createRepoName(name, (parentId?parentId:id));
     let octokit = await Github.getConnection();
-    if(!octokit || !repos) return false;
+    if(!octokit || !repos.data.length) return false;
     if (!repos.data.map((repo) => repo.name).includes(repo)) {
       if(!await createRepo(octokit, 'phenoflow', repo, about, restricted)) return false;
       Github.addZenodoWebhook('phenoflow', repo);
