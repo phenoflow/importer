@@ -7,6 +7,8 @@ const proxyquire = require('proxyquire');
 const models = require("../models");
 const logger = require("../config/winston");
 const config = require("config");
+const fs = require('fs').promises;
+const nock = require('nock')
 const testServerObject = proxyquire('../app', {'./routes/importer':proxyquire('../routes/importer', {'express-jwt':(...args)=>{return (req, res, next)=>{return next();}}})});
 
 describe("hdr", () => {
@@ -31,7 +33,10 @@ describe("hdr", () => {
       let path;
       try {
         path = config.get("importer.HDR_API") + "/phenotypes/?format=json";
+        // ~MDC 05/24 HDR UK library not able to reliably serve requests for all phenotypes, so use local mock for now
+        nock(config.get("importer.HDR_API")).get("/phenotypes/?format=json").reply(200, JSON.parse(await fs.readFile("test/fixtures/importer/hdr/phenotypes.json", "utf8")));
         let phenotypes = await got.get(path, {responseType:"json"});
+        nock.restore()
         return phenotypes.body;
       } catch(getAllPhenotypesError) {
         logger.error("Error getting all phenotypes: " + getAllPhenotypesError + " " + path);
@@ -49,8 +54,9 @@ describe("hdr", () => {
       }
     }
 
-    async function importAllPhenotypesHDR() {
-      for(let phenotype of await getAllPhenotypesHDR()) {
+    async function importAllPhenotypesHDR(start=0) {
+      let allPhenotypesHDR = (await getAllPhenotypesHDR()).slice(start);
+      for(let phenotype of allPhenotypesHDR) {
         try {
           await importPhenotypeHDR(phenotype);
         } catch(importPhenotypeError) {
