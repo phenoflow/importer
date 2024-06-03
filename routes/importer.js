@@ -81,7 +81,7 @@ router.post('/importCodelists', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"), a
   try {
     let parent;
     for(let workflow of generatedWorkflows) {
-      if(!await Importer.importPhenotype(workflow.id, workflow.name, workflow.about, workflow.userName, workflow.steps)) continue;
+      if(!(workflow.id=await Importer.importPhenotype(workflow.id, workflow.name, workflow.about, workflow.userName, workflow.steps))) continue;
       if(workflow.steps[0].stepType=="load"||workflow.steps[0].stepType=="external") {
         try {
           let child = await models.workflow.findOne({where:{id:workflow.id}});
@@ -176,7 +176,7 @@ router.post('/importKeywordList', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"),
   try {
     let parent;
     for(let workflow of generatedWorkflows) {
-      if(!await Importer.importPhenotype(workflow.id, workflow.name, workflow.about, workflow.userName, workflow.steps)) continue;
+      if(!(workflow.id=await Importer.importPhenotype(workflow.id, workflow.name, workflow.about, workflow.userName, workflow.steps))) continue;
       if(workflow.steps[0].stepType=="load"||workflow.steps[0].stepType=="external") {
         try {
           let child = await models.workflow.findOne({where:{id:workflow.id}});
@@ -276,7 +276,7 @@ router.post('/importSteplist', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"), al
   try {
     let importedWorkflows = [], parent;
     for(let workflow of generatedWorkflows) {
-      if(!await Importer.importPhenotype(workflow.id, workflow.name, workflow.about, workflow.userName, workflow.steps)) continue;
+      if(!(workflow.id=await Importer.importPhenotype(workflow.id, workflow.name, workflow.about, workflow.userName, workflow.steps))) continue;
       importedWorkflows.push(workflow);
       if(workflow.steps[0].stepType!="load"&&workflow.steps[0].stepType!="external") continue;
       try {
@@ -427,7 +427,7 @@ class Importer {
       workflowId = (existingWorkflowId||await Importer.createWorkflow(generatedWorkflowId, name, about, userName));
     } catch(createWorkflowError) {
       logger.error('Error creating workflow: '+createWorkflowError);
-      return false;
+      return null;
     }
     let existingWorkflowChanged = await Importer.importChangesExistingWorkflow(existingWorkflowId, steps);
     if(!existingWorkflowId||(existingWorkflowId&&existingWorkflowChanged)) { 
@@ -436,12 +436,12 @@ class Importer {
         await Importer.createSteps(workflowId, steps);
       } catch(createStepsError) {
         logger.error('Error creating steps: '+createStepsError);
-        return false;
+        return null;
       }
       await Workflow.workflowComplete(workflowId);
-      return true;
+      return workflowId;
     }
-    return false;
+    return null;
   }
 
   static async importChangesExistingWorkflow(workflowId, steps) {
