@@ -23,7 +23,7 @@ describe("hdr", () => {
         });
         result.should.be.a("Array");
       } catch(addUserError) {
-        logger.error("Error adding user: " + addUserError);
+        logger.error("Error adding user: " + addUserError + " (" + name + ")");
         return false;
       }
       return true;
@@ -67,8 +67,48 @@ describe("hdr", () => {
       return true;
     }
 
+    function cleanName(name) {
+      if(!name) {
+        logger.warn('No name to clean')
+        return name;
+      }
+      return name.replace(/(\s)?\(.*\)/g, "");
+    }
+
+    function checkAndReformatHDRPhenotypeName(name) {
+      const MAX_PHENOTYPE_NAME_LENGTH = 60 // accounting for UUID
+      if(cleanName(name).length>MAX_PHENOTYPE_NAME_LENGTH) {
+        const words = name.split(" ");
+        return words.reduce((accumulator, word) => {
+          if((accumulator.length + (accumulator ? 1 : 0) + word.length) > MAX_PHENOTYPE_NAME_LENGTH) {
+            return accumulator; 
+          }
+          return accumulator + (accumulator ? " " : "") + word;
+        }, "");
+      }
+      return name;
+    }
+
+    function checkAndReformatHDRAuthor(author) {
+      if(author.length>255) {
+        if(author.includes(",")) return author.split(",")[0] + "," + author.split(",")[1] + ", et. al";
+        if(author.includes("and")) return author.split(" and ")[0] + ", " + author.split(" and ")[1] + ", et. al";
+        return "";
+      }
+      return author;
+    }
+
+    function cleanPhenotypeHDR(phenotype) {
+      phenotype.name = phenotype.name.replaceAll(" - ", " ");
+      phenotype.author = phenotype.author.replaceAll(" & ", " and ");
+      return phenotype;
+    }
+
     async function importPhenotypeHDR(phenotype) {
       let allCSVs, path;
+      if(!(phenotype.name=checkAndReformatHDRPhenotypeName(phenotype.name))) return false;
+      if(!(phenotype.author=checkAndReformatHDRAuthor(phenotype.author))) return false;
+      phenotype = cleanPhenotypeHDR(phenotype);
       try {
         path = config.get("importer.HDR_API") + "/phenotypes/" + phenotype.phenotype_id + "/export/codes/?format=json";
         allCSVs = await got.get(path, {responseType:"json"});
@@ -77,7 +117,7 @@ describe("hdr", () => {
         return false;
       }
       try {
-        allCSVs = allCSVs.body.reduce((b, a) => { b[a.coding_system] = (b[a.coding_system]??[]).concat([{[a.coding_system.name.replace("codes", "code")]:a.code, "description":a.description?a.description.replace(/(?<!^)\(.*\)/,""):phenotype.name}]); return b; }, {});
+        allCSVs = allCSVs.body.filter(codelistEntry=>codelistEntry.code).reduce((accumulator, current) => { accumulator[current.coding_system] = (accumulator[current.coding_system]??[]).concat([{[current.coding_system.name.replace("codes", "code")]:current.code, "description":current.description?current.description.replace(/(?<!^)\(.*\)/,""):phenotype.name}]); return accumulator; }, {});
       } catch(formatCodelistError) {
         logger.error("Error formatting codelist: " + formatCodelistError + " " + path);
         return false;
