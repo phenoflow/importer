@@ -106,7 +106,6 @@ describe("hdr", () => {
 
     async function importPhenotypeHDR(phenotype) {
       let allCSVs, path;
-      if(!(phenotype.name=checkAndReformatHDRPhenotypeName(phenotype.name))) return false;
       if(!(phenotype.author=checkAndReformatHDRAuthor(phenotype.author))) return false;
       phenotype = cleanPhenotypeHDR(phenotype);
       try {
@@ -125,7 +124,7 @@ describe("hdr", () => {
       allCSVs = Object.entries(allCSVs).map(codelist=>({"filename":phenotype.name.replaceAll(" ", "_") + "_" + phenotype.phenotype_id + "_" + codelist[0].replaceAll(" ", "_"), "content":codelist[1]}));
       if(!await addUser(phenotype.author)) return false;
       if(!allCSVs.length) return true;
-      let res = await chai.request(testServerObject).post("/phenoflow/importer/importCodelists").send({csvs:allCSVs, name:phenotype.name, about:phenotype.name + " - " + phenotype.phenotype_id, userName:phenotype.author});
+      let res = await chai.request(testServerObject).post("/phenoflow/importer/importCodelists").send({csvs:allCSVs, name:checkAndReformatHDRPhenotypeName(phenotype.name), about:phenotype.name + " - " + phenotype.phenotype_id, userName:phenotype.author});
       res.should.be.a("object");
       res.should.have.status(200);
       return true;
