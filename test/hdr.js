@@ -79,12 +79,18 @@ describe("hdr", () => {
       const MAX_PHENOTYPE_NAME_LENGTH = 60 // accounting for UUID
       if(cleanName(name).length>MAX_PHENOTYPE_NAME_LENGTH) {
         const words = name.split(" ");
-        return words.reduce((accumulator, word) => {
+        let editedName = words.reduce((accumulator, word) => {
           if((accumulator.length + (accumulator ? 1 : 0) + word.length) > MAX_PHENOTYPE_NAME_LENGTH) {
             return accumulator; 
           }
           return accumulator + (accumulator ? " " : "") + word;
         }, "");
+        const editedNameWords = editedName.split(" ");
+        // ending in a short word is rarely neat in an edited name, so remove
+        if(editedNameWords[editedNameWords.length - 1].length <= 3) editedName = editedNameWords.slice(0, editedNameWords.length - 1).join(" ");
+        // 'and X' is rarely neat in an edited name, so remove
+        if(editedNameWords[editedNameWords.length - 2] == "and") editedName = editedNameWords.slice(0, editedNameWords.length - 2).join(" ");
+        return editedName;
       }
       return name;
     }
