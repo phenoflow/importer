@@ -279,6 +279,7 @@ class Github {
       try {
         // If branch does not yet exist, use base branch as commit reference
         ({ data:refData } = await octo.git.getRef({owner:org, repo, ref:'heads/main'}));
+        commitSha = refData.object.sha;
       } catch(error) {
         logger.error("Error getting existing commit reference: " + error + ". " + JSON.stringify(refData) + " " + repo + " " + branch);
         return false;
@@ -403,7 +404,7 @@ class Github {
     };
 
     if(!await setBranchToCommit(octo, org, repo, newCommit.sha, branch)) return false;
-    await updateDefaultBranch(octo, org, repo, branch);
+    await this.updateDefaultBranch(octo, org, repo, branch);
     return newCommit.sha;
   }
 
