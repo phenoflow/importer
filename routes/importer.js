@@ -14,7 +14,7 @@ const { v1: uuidv1 } = require("uuid");
 const config = require("config");
 const ImporterUtils = require("../util/importer");
 const Workflow = require('../util/workflow');
-const Github = require('../util/github');
+const Gitea = require('../util/gitea');
 const { workflow } = require('../util/workflow');
 
 /**
@@ -103,7 +103,7 @@ router.post('/importCodelists', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"), a
       } catch(getUserError) {
         logger.error('Error getting user restricted status: ' + getUserError);
       }
-      await Github.generateAndCommit(workflow.id, workflow.name, workflow.about, workflow.steps[0].stepName, req.body.userName, restricted);
+      await Gitea.generateAndCommit(workflow.id, workflow.name, workflow.about, workflow.steps[0].stepName, req.body.userName, restricted);
     }
     return res.sendStatus(200);
   } catch(importListsError) {
@@ -198,7 +198,7 @@ router.post('/importKeywordList', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"),
       } catch(getUserError) {
         logger.error('Error getting user restricted status: ' + getUserError);
       }
-      await Github.generateAndCommit(workflow.id, workflow.name, workflow.about, workflow.steps[0].stepName, req.body.userName, restricted);
+      await Gitea.generateAndCommit(workflow.id, workflow.name, workflow.about, workflow.steps[0].stepName, req.body.userName, restricted);
     }
     return res.sendStatus(200);
   } catch(importListsError) {
@@ -299,7 +299,7 @@ router.post('/importSteplist', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"), al
     } catch(getUserError) {
       logger.error('Error getting user restricted status: ' + getUserError);
     }
-    await Github.generateAndCommitAll(importedWorkflows, restricted);
+    await Gitea.generateAndCommitAll(importedWorkflows, restricted);
     return res.sendStatus(200);
   } catch(importListsError) {
     logger.error('Error importing list: ' + importListsError);
@@ -398,7 +398,7 @@ router.post('/addConnector', jwt({secret:config.get("jwt.RSA_PRIVATE_KEY"), algo
     } catch(getUserError) {
       logger.error('Error getting user restricted status: ' + getUserError);
     }
-    await Github.generateAndCommit(duplicatedWorkflowId, existingWorkflow.name, existingWorkflow.about, existingWorkflow.steps[0].stepName, existingWorkflow.userName, restricted);
+    await Gitea.generateAndCommit(duplicatedWorkflowId, existingWorkflow.name, existingWorkflow.about, existingWorkflow.steps[0].stepName, existingWorkflow.userName, restricted);
   }
   res.sendStatus(200);
 });
@@ -576,7 +576,7 @@ class Importer {
       logger.error('Error removing local repo for ' + workflowId + ': ' + error);
       return false;
     }
-    if(!await Github.deleteRepo(workflowId)) return false;
+    if(!await Gitea.deleteRepo(workflowId)) return false;
     return true;
   }
 
@@ -615,9 +615,9 @@ class Importer {
   }
 
   static async removePartialImports() {
-    for(let repo of (await Github.getRepos())?.data || []) {
+    for(let repo of (await Gitea.getRepos())?.data || []) {
       try {
-        if((await Github.getBranches(repo.name)).data.length < config.get("github.EXPECTED_BRANCH_COUNT")) {
+        if((await Gitea.getBranches(repo.name)).data.length < config.get("github.EXPECTED_BRANCH_COUNT")) {
           if(repo.name.includes("---") && !await Importer.removeWorkflows(repo.name.slice(repo.name.lastIndexOf("---") + 3, repo.name.length))) return false;
         }
       } catch(error) {
