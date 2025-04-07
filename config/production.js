@@ -20,9 +20,9 @@ module.exports = {
     URL: "https://generator-webapp-1:3004"
   },
   github: {
-    BASE_URL: "http://phenoflow-proxy-1/git/api/v1",
+    BASE_URL: "https://phenoflow-proxy-1/gitea/api/v1",
     ACCESS_TOKEN: process.env.GITHUB_ACCESS_TOKEN,
-    REPOSITORY_PREFIX: "http://phenoflow-proxy-1/git/phenoflow",
+    REPOSITORY_PREFIX: "https://phenoflow-proxy-1/gitea/phenoflow",
     ZENODO_WEBHOOK: process.env.GITHUB_ZENODO_WEBHOOK
   },
   jwt: {
